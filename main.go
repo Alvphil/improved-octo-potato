@@ -18,13 +18,11 @@ func main() {
 	r := chi.NewRouter()
 	apiCfg := apiConfig{0}
 	r.Mount("/api/", api(&apiCfg))
+	r.Mount("/admin/", admin(&apiCfg))
 
 	fsHandler := apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(filepathRoot))))
 	r.Handle("/app", fsHandler)
 	r.Handle("/app/*", fsHandler)
-	//r.Get("/healthz", handlerReadiness)
-	//r.Get("/metrics", apiCfg.handlerMetricsInc)
-	//r.HandleFunc("/reset", apiCfg.handlerResetMetrics)
 
 	corsMux := middlewareCors(r)
 
@@ -43,12 +41,6 @@ func handlerReadiness(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(http.StatusText(http.StatusOK)))
 }
 
-func (cfg *apiConfig) handlerMetricsInc(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprint(w, cfg.numberServerHits())
-}
-
 func (cfg *apiConfig) handlerResetMetrics(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
@@ -59,16 +51,8 @@ func (cfg apiConfig) numberServerHits() string {
 	return ("Hits: " + fmt.Sprint(cfg.fileserverHits))
 }
 
-func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cfg.fileserverHits++ // Increment the counter here
-		log.Printf("number of hits: %v", cfg.fileserverHits)
-		next.ServeHTTP(w, r) // Call the next handler
-	})
-
-	//cfg.fileserverHits++
-	//log.Printf("number of hits: %v", cfg.fileserverHits)
-	//return next
+func (cfg apiConfig) adminNumberServerHits() string {
+	return (fmt.Sprint(cfg.fileserverHits))
 }
 
 func api(apiCfg *apiConfig) http.Handler {
@@ -76,5 +60,11 @@ func api(apiCfg *apiConfig) http.Handler {
 	r.Get("/healthz", handlerReadiness)
 	r.Get("/metrics", apiCfg.handlerMetricsInc)
 	r.HandleFunc("/reset", apiCfg.handlerResetMetrics)
+	return r
+}
+
+func admin(apiCfg *apiConfig) http.Handler {
+	r := chi.NewRouter()
+	r.Get("/metrics", apiCfg.adminMetricsInc)
 	return r
 }
