@@ -5,18 +5,28 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/Alvphil/improved-octo-potato.git/internal/database"
 	"github.com/go-chi/chi"
 )
 
 type apiConfig struct {
 	fileserverHits int
+	DB             *database.DB
 }
 
 func main() {
 	const filepathRoot = "."
 	const port = "8080"
+	db, err := database.NewDB("database.json")
+	if err != nil {
+		log.Fatal(err)
+	}
+	apiCfg := apiConfig{
+		fileserverHits: 0,
+		DB:             db,
+	}
 	r := chi.NewRouter()
-	apiCfg := apiConfig{0}
+
 	r.Mount("/api/", api(&apiCfg))
 	r.Mount("/admin/", admin(&apiCfg))
 
@@ -59,6 +69,8 @@ func api(apiCfg *apiConfig) http.Handler {
 	r := chi.NewRouter()
 	r.Get("/healthz", handlerReadiness)
 	r.Get("/metrics", apiCfg.handlerMetricsInc)
+	r.Post("/chirps", apiCfg.handlerCreateChirp)
+	r.Get("/chirps", apiCfg.handlerGetChirps)
 	r.HandleFunc("/reset", apiCfg.handlerResetMetrics)
 	return r
 }
