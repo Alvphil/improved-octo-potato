@@ -71,6 +71,9 @@ func api(apiCfg *apiConfig) http.Handler {
 	r.Get("/metrics", apiCfg.handlerMetricsInc)
 	r.Post("/chirps", apiCfg.handlerCreateChirp)
 	r.Get("/chirps", apiCfg.handlerGetChirps)
+	r.Get("/chirps/{chirpID}", apiCfg.handlerGetChirp)
+	r.Post("/users", apiCfg.handlerCreateUser)
+	r.Get("/users/{userID}", apiCfg.handlerGetUser)
 	r.HandleFunc("/reset", apiCfg.handlerResetMetrics)
 	return r
 }
