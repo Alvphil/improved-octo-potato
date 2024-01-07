@@ -4,14 +4,17 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/Alvphil/improved-octo-potato.git/internal/database"
 	"github.com/go-chi/chi"
+	"github.com/joho/godotenv"
 )
 
 type apiConfig struct {
 	fileserverHits int
 	DB             *database.DB
+	jwtSecret      string
 }
 
 func main() {
@@ -21,9 +24,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	godotenv.Load()
 	apiCfg := apiConfig{
 		fileserverHits: 0,
 		DB:             db,
+		jwtSecret:      os.Getenv("JWT_SECRET"),
 	}
 	r := chi.NewRouter()
 
@@ -74,6 +79,7 @@ func api(apiCfg *apiConfig) http.Handler {
 	r.Get("/chirps/{chirpID}", apiCfg.handlerGetChirp)
 	r.Post("/users", apiCfg.handlerCreateUser)
 	r.Get("/users/{userID}", apiCfg.handlerGetUser)
+	r.Post("/login", apiCfg.HandlerLoginUser)
 	r.HandleFunc("/reset", apiCfg.handlerResetMetrics)
 	return r
 }

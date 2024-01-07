@@ -22,14 +22,14 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		w.WriteHeader(500)
 		return
 	}
-	if len(params.Email) > 140 {
-		w.WriteHeader(400)
-		return
-	}
 	email := params.Email
 	passwordHashed, _ := bcrypt.GenerateFromPassword([]byte(params.Password), 0)
 
-	respBody, _ := cfg.DB.CreateUser(email, passwordHashed)
+	respBody, err := cfg.DB.CreateUser(email, passwordHashed)
+	if err != nil {
+		respondWithError(w, http.StatusNotAcceptable, "User already exists")
+	} else {
+		respondWithJSON(w, http.StatusCreated, respBody)
+	}
 
-	respondWithJSON(w, http.StatusCreated, respBody)
 }
