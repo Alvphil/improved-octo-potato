@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) handlerPostChirp(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Body string `json:"body"`
 	}

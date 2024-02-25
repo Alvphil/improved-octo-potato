@@ -8,7 +8,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) handlerPostUser(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`

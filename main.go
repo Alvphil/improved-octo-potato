@@ -74,12 +74,15 @@ func api(apiCfg *apiConfig) http.Handler {
 	r := chi.NewRouter()
 	r.Get("/healthz", handlerReadiness)
 	r.Get("/metrics", apiCfg.handlerMetricsInc)
-	r.Post("/chirps", apiCfg.handlerCreateChirp)
+	r.Post("/chirps", apiCfg.handlerPostChirp)
 	r.Get("/chirps", apiCfg.handlerGetChirps)
 	r.Get("/chirps/{chirpID}", apiCfg.handlerGetChirp)
-	r.Post("/users", apiCfg.handlerCreateUser)
+	r.Post("/users", apiCfg.handlerPostUser)
+	r.Put("/users", apiCfg.HandlerPutUsers)
 	r.Get("/users/{userID}", apiCfg.handlerGetUser)
 	r.Post("/login", apiCfg.HandlerLoginUser)
+	r.Post("/refresh", apiCfg.HandlerRefreshToken)
+	r.Post("/revoke", apiCfg.HandlerRevokeToken)
 	r.HandleFunc("/reset", apiCfg.handlerResetMetrics)
 	return r
 }

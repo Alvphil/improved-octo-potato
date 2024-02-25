@@ -1,6 +1,10 @@
 package database
 
-import "errors"
+import (
+	"errors"
+
+	"golang.org/x/crypto/bcrypt"
+)
 
 type User struct {
 	ID             int    `json:"id"`
@@ -15,11 +19,11 @@ type PublicUser struct {
 }
 
 type UserJWT struct {
-	ID    int    `json:"id"`
-	Email string `json:"email"`
-	Token string `json:"token"`
+	ID            int    `json:"id"`
+	Email         string `json:"email"`
+	Token         string `json:"token"`
+	Refresh_token string `json:"refresh_token"`
 }
-
 
 func (db *DB) CreateUser(email string, passwordHashed []byte) (PublicUser, error) {
 	dbStructure, err := db.loadDB()
@@ -70,7 +74,7 @@ func (db *DB) GetUser(id int) (PublicUser, error) {
 	return publicUser, nil
 }
 
-func (db *DB) GetLoggedInUser(id int, token string) (UserJWT, error) {
+func (db *DB) GetLoggedInUser(id int, token, refresh string) (UserJWT, error) {
 	dbStructure, err := db.loadDB()
 	if err != nil {
 		return UserJWT{}, err
@@ -82,9 +86,10 @@ func (db *DB) GetLoggedInUser(id int, token string) (UserJWT, error) {
 	}
 
 	loginResponse := UserJWT{
-		ID:    user.ID,
-		Email: user.Email,
-		Token: token,
+		ID:            user.ID,
+		Email:         user.Email,
+		Token:         token,
+		Refresh_token: refresh,
 	}
 
 	return loginResponse, nil
@@ -123,4 +128,34 @@ func (db *DB) UpdateUserJWTToken(jwtToken string, id int) (UserJWT, error) {
 
 	return UserJWT, nil
 
+}
+
+func (db *DB) UpdateUser(id int, email, password string) (PublicUser, error) {
+	dbStructure, err := db.loadDB()
+	if err != nil {
+		return PublicUser{}, err
+	}
+	user, ok := dbStructure.Users[id]
+	if !ok {
+		return PublicUser{}, err
+	}
+	if email != "" {
+		user.Email = email
+	}
+	if password != "" {
+		passwordHashed, _ := bcrypt.GenerateFromPassword([]byte(password), 0)
+		user.PasswordHashed = passwordHashed
+	}
+
+	dbStructure.Users[id] = user
+	err = db.writeDB(dbStructure)
+	if err != nil {
+		return PublicUser{}, err
+	}
+
+	publicUser := PublicUser{
+		ID:    user.ID,
+		Email: user.Email,
+	}
+	return publicUser, nil
 }

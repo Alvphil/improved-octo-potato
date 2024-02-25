@@ -14,9 +14,9 @@ import (
 
 func (cfg *apiConfig) HandlerLoginUser(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Email            string `json:"email"`
-		Password         string `json:"password"`
-		ExpiresInSeconds *int   `json:"expires_in_seconds,omitempty"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
+		//ExpiresInSeconds *int   `json:"expires_in_seconds,omitempty"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -41,21 +41,21 @@ func (cfg *apiConfig) HandlerLoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var expiresIn int
-	if params.ExpiresInSeconds != nil {
-		expiresIn = *params.ExpiresInSeconds
-	} else {
-		expiresIn = 86400 // Default value
-	}
-
-	token, err := cfg.CreateJWTToken(expiresIn, user.ID)
+	token, err := cfg.CreateJWTToken(3600, user.ID, "chirpy-access") // 1 hour in seconds = 3600
 	if err != nil {
 		// If there is an error fetching the user
 		respondWithError(w, http.StatusInternalServerError, "Server could not create JWS token for the user")
 		return
 	}
 
-	resp, err := cfg.DB.GetLoggedInUser(user.ID, token)
+	refresh, err := cfg.CreateJWTToken(5184000, user.ID, "chirpy-refresh") // 60 days in seconds = 5184000
+	if err != nil {
+		// If there is an error fetching the user
+		respondWithError(w, http.StatusInternalServerError, "Server could not create refresh token for the user")
+		return
+	}
+
+	resp, err := cfg.DB.GetLoggedInUser(user.ID, token, refresh)
 	if err != nil {
 		// If there is an error fetching the user
 		respondWithError(w, http.StatusInternalServerError, "Internal server error")
@@ -65,15 +65,12 @@ func (cfg *apiConfig) HandlerLoginUser(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, http.StatusOK, resp)
 }
 
-func (cfg *apiConfig) CreateJWTToken(expiresInSeconds int, userID int) (signedtoken string, err error) {
-	if expiresInSeconds < 0 || expiresInSeconds > 86400 {
-		expiresInSeconds = 86400
-	}
+func (cfg *apiConfig) CreateJWTToken(expiresInSeconds int, userID int, issuer string) (signedtoken string, err error) {
 	now := time.Now().UTC()
 	expirationTime := now.Add(time.Duration(expiresInSeconds) * time.Second)
 
 	claims := jwt.RegisteredClaims{
-		Issuer:    "Chirpy",
+		Issuer:    issuer,
 		IssuedAt:  jwt.NewNumericDate(now),
 		ExpiresAt: jwt.NewNumericDate(expirationTime),
 		Subject:   strconv.Itoa(userID),
@@ -81,6 +78,8 @@ func (cfg *apiConfig) CreateJWTToken(expiresInSeconds int, userID int) (signedto
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	fmt.Println(cfg.jwtSecret)
 	signedtoken, err = token.SignedString([]byte(cfg.jwtSecret))
-	fmt.Println(signedtoken)
+	if err != nil {
+		return "", err
+	}
 	return signedtoken, nil
 }
