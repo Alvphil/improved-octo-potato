@@ -1,32 +1,15 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
 func (cfg *apiConfig) HandlerRevokeToken(w http.ResponseWriter, r *http.Request) {
-	authHeader := r.Header.Get("Authorization")
-	words := strings.Split(authHeader, " ")
-
-	if len(words) != 2 {
-		respondWithError(w, http.StatusBadRequest, "Missing auth parameter")
-		return
-	}
-
-	tokenString := words[1]
-
-	token, err := jwt.ParseWithClaims(tokenString, &jwt.RegisteredClaims{}, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method")
-		}
-		return []byte(cfg.jwtSecret), nil
-	})
+	token, err := cfg.extractValidateToken(r)
 	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "Invalid token")
+		respondWithError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
