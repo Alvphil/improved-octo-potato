@@ -26,10 +26,13 @@ type RevokedRefreshTokens struct {
 	TimeStamp     time.Time `json:"timestamp"`
 }
 
-func NewDB(path string) (*DB, error) {
+func NewDB(path string, debug bool) (*DB, error) {
 	db := &DB{
 		path: path,
 		mu:   &sync.RWMutex{},
+	}
+	if debug {
+		os.Remove(db.path)
 	}
 	err := db.ensureDB()
 	return db, err

@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -76,7 +75,6 @@ func (cfg *apiConfig) CreateJWTToken(expiresInSeconds int, userID int, issuer st
 		Subject:   strconv.Itoa(userID),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	fmt.Println(cfg.jwtSecret)
 	signedtoken, err = token.SignedString([]byte(cfg.jwtSecret))
 	if err != nil {
 		return "", err

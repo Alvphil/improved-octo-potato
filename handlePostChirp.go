@@ -5,15 +5,28 @@ import (
 	"log"
 	"net/http"
 	"strings"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func (cfg *apiConfig) handlerPostChirp(w http.ResponseWriter, r *http.Request) {
+	token, err := cfg.extractValidateToken(r)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	claims, ok := token.Claims.(*jwt.RegisteredClaims)
+	if !ok {
+		respondWithError(w, http.StatusBadRequest, "Invalid token")
+		return
+	}
+
 	type parameters struct {
 		Body string `json:"body"`
 	}
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
-	err := decoder.Decode(&params)
+	err = decoder.Decode(&params)
 	if err != nil {
 		// an error will be thrown if the JSON is invalid or has the wrong types
 		// any missing fields will simply have their values in the struct set to their zero value
@@ -29,26 +42,10 @@ func (cfg *apiConfig) handlerPostChirp(w http.ResponseWriter, r *http.Request) {
 	//Here is what is going to be returned from a post request:
 	cleanedString := cleanBody(params.Body)
 
-	respBody, _ := cfg.DB.CreateChirp(cleanedString)
-	// type returnVals struct {
-	// 	// the key will be the name of struct field unless you give it an explicit JSON tag
-	// 	Cleaned_body string `json:"cleaned_body"`
-	// 	ID           int    `json:"id"`
-	// }
-	// respBody := chirp{
-	// 	Cleaned_body: cleanedString,
-	// 	ID:           1,
-	// }
+	respBody, _ := cfg.DB.CreateChirp(cleanedString, claims.Subject)
+
 	respondWithJSON(w, http.StatusCreated, respBody)
-	// dat, err := json.Marshal(respBody)
-	// if err != nil {
-	// 	log.Printf("Error marshalling JSON: %s", err)
-	// 	w.WriteHeader(500)
-	// 	return
-	// }
-	// w.Header().Set("Content-Type", "application/json")
-	// w.WriteHeader(201)
-	// w.Write(dat)
+
 }
 
 func cleanBody(body string) string {

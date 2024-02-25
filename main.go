@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -18,9 +19,12 @@ type apiConfig struct {
 }
 
 func main() {
+	dbg := flag.Bool("debug", false, "Enable debug mode")
+	flag.Parse()
 	const filepathRoot = "."
 	const port = "8080"
-	db, err := database.NewDB("database.json")
+
+	db, err := database.NewDB("database.json", *dbg)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -83,6 +87,7 @@ func api(apiCfg *apiConfig) http.Handler {
 	r.Post("/login", apiCfg.HandlerLoginUser)
 	r.Post("/refresh", apiCfg.HandlerRefreshToken)
 	r.Post("/revoke", apiCfg.HandlerRevokeToken)
+	r.Delete("/chirps/{chirpID}", apiCfg.handlerDeleteChirp)
 	r.HandleFunc("/reset", apiCfg.handlerResetMetrics)
 	return r
 }

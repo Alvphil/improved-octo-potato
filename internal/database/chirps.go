@@ -1,20 +1,28 @@
 package database
 
+import "strconv"
+
 type Chirp struct {
-	ID   int    `json:"id"`
-	Body string `json:"body"`
+	Author_id int    `json:"author_id"`
+	Body      string `json:"body"`
+	ID        int    `json:"id"`
 }
 
-func (db *DB) CreateChirp(body string) (Chirp, error) {
+func (db *DB) CreateChirp(body, author string) (Chirp, error) {
 	dbStructure, err := db.loadDB()
+	if err != nil {
+		return Chirp{}, err
+	}
+	authorId, err := strconv.Atoi(author)
 	if err != nil {
 		return Chirp{}, err
 	}
 
 	id := len(dbStructure.Chirps) + 1
 	chirp := Chirp{
-		ID:   id,
-		Body: body,
+		ID:        id,
+		Body:      body,
+		Author_id: authorId,
 	}
 	dbStructure.Chirps[id] = chirp
 
@@ -52,4 +60,29 @@ func (db *DB) GetChirp(id int) (Chirp, error) {
 	}
 
 	return chirp, nil
+}
+
+func (db *DB) DeleteChirp(id int) error {
+	dbStructure, err := db.loadDB()
+	if err != nil {
+		return err
+	}
+
+	chirp, ok := dbStructure.Chirps[id]
+	if !ok {
+		return ErrNotExist
+	}
+
+	deleted := Chirp{
+		ID:        chirp.ID,
+		Body:      "",
+		Author_id: -1,
+	}
+	dbStructure.Chirps[id] = deleted
+	err = db.writeDB(dbStructure)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
