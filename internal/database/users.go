@@ -11,11 +11,13 @@ type User struct {
 	Email          string `json:"email"`
 	PasswordHashed []byte `json:"password"`
 	Token          string `json:"token"`
+	Is_chirpy_red  bool   `json:"is_chirpy_red"`
 }
 
 type PublicUser struct {
-	ID    int    `json:"id"`
-	Email string `json:"email"`
+	ID            int    `json:"id"`
+	Email         string `json:"email"`
+	Is_chirpy_red bool   `json:"is_chirpy_red"`
 }
 
 type UserJWT struct {
@@ -23,6 +25,7 @@ type UserJWT struct {
 	Email         string `json:"email"`
 	Token         string `json:"token"`
 	Refresh_token string `json:"refresh_token"`
+	Is_chirpy_red bool   `json:"is_chirpy_red"`
 }
 
 func (db *DB) CreateUser(email string, passwordHashed []byte) (PublicUser, error) {
@@ -41,6 +44,7 @@ func (db *DB) CreateUser(email string, passwordHashed []byte) (PublicUser, error
 		Email:          email,
 		PasswordHashed: passwordHashed,
 		Token:          "",
+		Is_chirpy_red:  false,
 	}
 	dbStructure.Users[id] = user
 
@@ -49,8 +53,9 @@ func (db *DB) CreateUser(email string, passwordHashed []byte) (PublicUser, error
 		return PublicUser{}, err
 	}
 	publicUser := PublicUser{
-		ID:    user.ID,
-		Email: user.Email,
+		ID:            user.ID,
+		Email:         user.Email,
+		Is_chirpy_red: user.Is_chirpy_red,
 	}
 
 	return publicUser, nil
@@ -67,8 +72,9 @@ func (db *DB) GetUser(id int) (PublicUser, error) {
 		return PublicUser{}, ErrNotExist
 	}
 	publicUser := PublicUser{
-		ID:    user.ID,
-		Email: user.Email,
+		ID:            user.ID,
+		Email:         user.Email,
+		Is_chirpy_red: user.Is_chirpy_red,
 	}
 
 	return publicUser, nil
@@ -90,6 +96,7 @@ func (db *DB) GetLoggedInUser(id int, token, refresh string) (UserJWT, error) {
 		Email:         user.Email,
 		Token:         token,
 		Refresh_token: refresh,
+		Is_chirpy_red: user.Is_chirpy_red,
 	}
 
 	return loginResponse, nil
@@ -121,9 +128,10 @@ func (db *DB) UpdateUserJWTToken(jwtToken string, id int) (UserJWT, error) {
 	user.Token = jwtToken
 
 	UserJWT := UserJWT{
-		ID:    id,
-		Email: user.Email,
-		Token: user.Token,
+		ID:            id,
+		Email:         user.Email,
+		Token:         user.Token,
+		Is_chirpy_red: user.Is_chirpy_red,
 	}
 
 	return UserJWT, nil
@@ -154,8 +162,27 @@ func (db *DB) UpdateUser(id int, email, password string) (PublicUser, error) {
 	}
 
 	publicUser := PublicUser{
-		ID:    user.ID,
-		Email: user.Email,
+		ID:            user.ID,
+		Email:         user.Email,
+		Is_chirpy_red: user.Is_chirpy_red,
 	}
 	return publicUser, nil
+}
+
+func (db *DB) ApplyChirpRed(id int) error {
+	dbStructure, err := db.loadDB()
+	if err != nil {
+		return err
+	}
+	user, ok := dbStructure.Users[id]
+	if !ok {
+		return err
+	}
+	user.Is_chirpy_red = true
+	dbStructure.Users[id] = user
+	err = db.writeDB(dbStructure)
+	if err != nil {
+		return err
+	}
+	return nil
 }
